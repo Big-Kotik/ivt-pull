@@ -16,22 +16,22 @@ type PullServer struct {
 	api.UnimplementedPullerServer
 }
 
-// TODO: resources
-// TODO: bytes body HttpRequestWrapper
-func (p *PullServer) PullResource(req *api.HttpRequestsWrapper, respStream api.Puller_PullResourceServer) error {
+func (p *PullServer) PullResource(req *api.HttpRequests, respStream api.Puller_PullResourcesServer) error {
 	for _, req := range req.GetRequests() {
 		resp, err := p.sendRequset(req)
 
-		// TODO: как понять какой запрос дошел, а какой нет
 		if err != nil {
 			p.Logger.Print(fmt.Printf("can't send request in PullResource - %s", err.Error()))
-			continue
+
+			return err
 		}
 
 		err = respStream.Send(resp)
 
 		if err != nil {
 			p.Logger.Print(fmt.Printf("can't write resp to stream - %s", err.Error()))
+
+			return err
 		}
 	}
 
@@ -42,13 +42,10 @@ func (p *PullServer) mustEmbedUnimplementedPullerServer() {
 
 }
 
-func (p *PullServer) sendRequset(r *api.HttpRequestsWrapper_Request) (*api.Response, error) {
-	// TODO: too much logic in one place
+func newHttpRequest(r *api.HttpRequests_HttpRequest) (*http.Request, error) {
 	req, err := http.NewRequest(r.GetMethod(), r.GetUrl(), strings.NewReader(r.GetBody()))
 
 	if err != nil {
-		p.Logger.Print(fmt.Printf("can' create req in sendRequest, method: %s url: %s",
-			r.GetMethod(), r.GetUrl()))
 		return nil, err
 	}
 
@@ -58,27 +55,41 @@ func (p *PullServer) sendRequset(r *api.HttpRequestsWrapper_Request) (*api.Respo
 		}
 	}
 
+	return req, nil
+}
+
+func (p *PullServer) sendRequset(r *api.HttpRequests_HttpRequest) (*api.HttpResponse, error) {
+	req, err := newHttpRequest(r)
+
+	if err != nil {
+		p.Logger.Printf("Bad request in sendRequest - %s", err.Error())
+
+		return nil, fmt.Errorf("bad request in sendRequest - %w", err)
+	}
+
 	resp, err := p.Client.Do(req)
 
 	if err != nil {
-		return nil, err
+		p.Logger.Printf("Can't send request in sendRequest - %s", err.Error())
+
+		return nil, fmt.Errorf("can't send request in sendRequest - %w", err)
 	}
 
-	return respToGrpcResponse(resp)
+	return httpToGrpc(resp)
 }
 
-func respToGrpcResponse(resp *http.Response) (*api.Response, error) {
-	grpcResp := api.Response{}
-	grpcResp.StatusCode = int32(resp.StatusCode)
-	grpcResp.ProtoMajor = int32(resp.ProtoMajor)
-	grpcResp.ProtoMinor = int32(resp.ProtoMinor)
+func httpToGrpc(resp *http.Response) (*api.HttpResponse, error) {
+	grpcResp := api.HttpResponse{
+		StatusCode: int32(resp.StatusCode),
+		ProtoMajor: int32(resp.ProtoMajor),
+		ProtoMinor: int32(resp.ProtoMinor),
+	}
 	grpcResp.Header = make(map[string]*api.Header)
 
 	for k, v := range resp.Header {
 		grpcResp.Header[k] = &api.Header{Keys: v}
 	}
 
-	// TODO: send by parts?
 	body, err := io.ReadAll(resp.Body)
 	grpcResp.Body = body
 
