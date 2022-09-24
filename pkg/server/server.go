@@ -12,25 +12,26 @@ import (
 
 type PullServer struct {
 	http.Client
-	logger *log.Logger
+	Logger *log.Logger
 	api.UnimplementedPullerServer
 }
 
 // TODO: resources
+// TODO: bytes body HttpRequestWrapper
 func (p *PullServer) PullResource(req *api.HttpRequestsWrapper, respStream api.Puller_PullResourceServer) error {
 	for _, req := range req.GetRequests() {
 		resp, err := p.sendRequset(req)
 
 		// TODO: как понять какой запрос дошел, а какой нет
 		if err != nil {
-			p.logger.Print(fmt.Printf("can't send request in PullResource - %s", err.Error()))
+			p.Logger.Print(fmt.Printf("can't send request in PullResource - %s", err.Error()))
 			continue
 		}
 
 		err = respStream.Send(resp)
 
 		if err != nil {
-			p.logger.Print(fmt.Printf("can't write resp to stream - %s", err.Error()))
+			p.Logger.Print(fmt.Printf("can't write resp to stream - %s", err.Error()))
 		}
 	}
 
@@ -46,7 +47,7 @@ func (p *PullServer) sendRequset(r *api.HttpRequestsWrapper_Request) (*api.Respo
 	req, err := http.NewRequest(r.GetMethod(), r.GetUrl(), strings.NewReader(r.GetBody()))
 
 	if err != nil {
-		p.logger.Print(fmt.Printf("can' create req in sendRequest, method: %s url: %s",
+		p.Logger.Print(fmt.Printf("can' create req in sendRequest, method: %s url: %s",
 			r.GetMethod(), r.GetUrl()))
 		return nil, err
 	}
@@ -71,6 +72,7 @@ func respToGrpcResponse(resp *http.Response) (*api.Response, error) {
 	grpcResp.StatusCode = int32(resp.StatusCode)
 	grpcResp.ProtoMajor = int32(resp.ProtoMajor)
 	grpcResp.ProtoMinor = int32(resp.ProtoMinor)
+	grpcResp.Header = make(map[string]*api.Header)
 
 	for k, v := range resp.Header {
 		grpcResp.Header[k] = &api.Header{Keys: v}
