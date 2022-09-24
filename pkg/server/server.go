@@ -16,12 +16,14 @@ type PullServer struct {
 	api.UnimplementedPullerServer
 }
 
-func (p *PullServer) PullResource(req *api.HttpRequests, respStream api.Puller_PullResourcesServer) error {
+func (p *PullServer) PullResources(req *api.HttpRequests, respStream api.Puller_PullResourcesServer) error {
+	p.Logger.Printf("start handling requests")
+
 	for _, req := range req.GetRequests() {
 		resp, err := p.sendRequset(req)
 
 		if err != nil {
-			p.Logger.Print(fmt.Printf("can't send request in PullResource - %s", err.Error()))
+			p.Logger.Print(fmt.Printf("can't send request in PullResources - %s", err.Error()))
 
 			return err
 		}
