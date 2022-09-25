@@ -1,11 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/Big-Kotik/ivt-pull-api/pkg/api"
 )
@@ -25,18 +25,25 @@ func (p *PullServer) PullResources(req *api.HttpRequests, respStream api.Puller_
 		if err != nil {
 			p.Logger.Print(fmt.Printf("can't send request in PullResources - %s", err.Error()))
 
+			fmt.Println("error")
 			return err
 		}
 
+		fmt.Printf("resp UUid: %v\n", req.Uuid)
+		resp.Uuid = req.Uuid
 		err = respStream.Send(resp)
 
 		if err != nil {
 			p.Logger.Print(fmt.Printf("can't write resp to stream - %s", err.Error()))
 
+			fmt.Println("another error")
 			return err
 		}
+		fmt.Printf("body size: %d\n", len(resp.Body))
+		fmt.Printf("send something\n")
 	}
 
+	fmt.Println("exit")
 	return nil
 }
 
@@ -45,7 +52,7 @@ func (p *PullServer) mustEmbedUnimplementedPullerServer() {
 }
 
 func newHttpRequest(r *api.HttpRequests_HttpRequest) (*http.Request, error) {
-	req, err := http.NewRequest(r.GetMethod(), r.GetUrl(), strings.NewReader(r.GetBody()))
+	req, err := http.NewRequest(r.GetMethod(), r.GetUrl(), bytes.NewReader(r.GetBody()))
 
 	if err != nil {
 		return nil, err
