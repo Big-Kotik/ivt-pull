@@ -17,7 +17,7 @@ type PullServer struct {
 }
 
 func (p *PullServer) PullResources(req *api.HttpRequests, respStream api.Puller_PullResourcesServer) error {
-	p.Logger.Printf("start handling requests")
+	// p.Logger.Printf("start handling requests")
 
 	for _, req := range req.GetRequests() {
 		fmt.Printf("pull: %s\n", req.Url)
@@ -44,7 +44,7 @@ func (p *PullServer) PullResources(req *api.HttpRequests, respStream api.Puller_
 		fmt.Printf("pulled: %s\n", req.Url)
 	}
 
-	fmt.Println("exit")
+	// fmt.Println("exit")
 	return nil
 }
 
