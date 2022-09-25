@@ -20,6 +20,7 @@ func (p *PullServer) PullResources(req *api.HttpRequests, respStream api.Puller_
 	p.Logger.Printf("start handling requests")
 
 	for _, req := range req.GetRequests() {
+		fmt.Printf("pull: %s\n", req.Url)
 		resp, err := p.sendRequset(req)
 
 		if err != nil {
@@ -39,8 +40,8 @@ func (p *PullServer) PullResources(req *api.HttpRequests, respStream api.Puller_
 			fmt.Println("another error")
 			return err
 		}
-		fmt.Printf("body size: %d\n", len(resp.Body))
-		fmt.Printf("send something\n")
+
+		fmt.Printf("pulled: %s\n", req.Url)
 	}
 
 	fmt.Println("exit")
