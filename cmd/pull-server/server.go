@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -11,8 +12,12 @@ import (
 	"google.golang.org/grpc"
 )
 
+var port = flag.Int("port", 8080, "The grpc server port")
+
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 7272))
+	flag.Parse()
+
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
 
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -20,5 +25,9 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	api.RegisterPullerServer(grpcServer, &server.PullServer{Client: http.Client{}, Logger: log.Default()})
-	grpcServer.Serve(lis)
+	err = grpcServer.Serve(lis)
+
+	if err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
